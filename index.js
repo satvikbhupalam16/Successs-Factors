@@ -17,9 +17,9 @@ const onlineUsers = {};
 const twilio = require('twilio');
 const TWILIO_SID = process.env.TWILIO_SID;
 const TWILIO_AUTH = process.env.TWILIO_AUTH;
-const twilioClient = twilio(TWILIO_SID, TWILIO_AUTH);
-const FROM_NUMBER = '+18314806785';
-const TO_NUMBER = '+919246497154';
+const twilioClient = require('twilio')(process.env.TWILIO_SID, process.env.TWILIO_AUTH);
+const FROM_NUMBER = process.env.FROM_NUMBER;
+const TO_NUMBER = process.env.TO_NUMBER;
 
 // ✅ MongoDB connection
 mongoose.connect('mongodb+srv://sf_admin:Rss%401234567890@cluster0.vs2ktwe.mongodb.net/chatDB?retryWrites=true&w=majority&appName=Cluster0')
