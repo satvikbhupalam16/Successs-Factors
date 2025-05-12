@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -14,8 +15,8 @@ const onlineUsers = {};
 
 // ✅ Twilio setup
 const twilio = require('twilio');
-const TWILIO_SID = 'ACd69482c66fcf764c7c0f2aa537a5672d';
-const TWILIO_AUTH = '048ffd50c4fed2bb54b45655cc838fad';
+const TWILIO_SID = process.env.TWILIO_SID;
+const TWILIO_AUTH = process.env.TWILIO_AUTH;
 const twilioClient = twilio(TWILIO_SID, TWILIO_AUTH);
 const FROM_NUMBER = '+18314806785';
 const TO_NUMBER = '+919246497154';
