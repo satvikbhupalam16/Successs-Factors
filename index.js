@@ -22,11 +22,10 @@ const FROM_NUMBER = process.env.FROM_NUMBER;
 const TO_NUMBER = process.env.TO_NUMBER;
 
 // ✅ MongoDB connection
-mongoose.connect('mongodb+srv://sf_admin:Rss%401234567890@cluster0.vs2ktwe.mongodb.net/chatDB?retryWrites=true&w=majority&appName=Cluster0')
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB'))
-  .catch((error) => console.error('❌ MongoDB connection error:', error));
-
-// Serve static files
+  .catch((error) => console.error('❌ MongoDB connection error:', error));// Serve static files
+  
 app.use('/style.css', express.static(path.join(__dirname, 'style.css')));
 app.use('/SF_Home_Page.css', express.static(path.join(__dirname, 'SF_Home_Page.css')));
 app.use('/client.js', express.static(path.join(__dirname, 'client.js')));
