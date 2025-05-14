@@ -35,22 +35,22 @@ document.getElementById('submit-login').addEventListener('click', () => {
   socket.emit('set name', { name: username, password });
 });
 
-// Only register these once:
+// === After Successful Login
 socket.on('name set', (data) => {
   userName = data.name;
+
   if (userName === 'Dog' && 'Notification' in window && Notification.permission !== 'granted') {
     Notification.requestPermission().then((permission) => {
       console.log('Notification permission:', permission);
     });
     console.log('Logged in as:', userName);
-    console.log('Notification permission:', Notification.permission);
-
   }
-  
+
   chatReady = true;
 
   pendingMessages.forEach(data => addMessageToDOM(data));
   pendingMessages = [];
+
   document.getElementById('name-container').style.display = 'none';
   document.getElementById('chat').style.display = 'flex';
 });
@@ -75,6 +75,79 @@ document.getElementById('toggle-password').addEventListener('click', () => {
   }
 });
 
+// === Chat History (Handled after chatReady)
+socket.on('chat history', (messages) => {
+  if (!chatReady) {
+    pendingMessages = messages;
+  } else {
+    messages.forEach(data => addMessageToDOM(data));
+  }
+});
+
+// === Live Messages ===
+socket.on('chat message', (data) => {
+  addMessageToDOM(data);
+  if (userName === 'Dog' && data.sender !== userName && document.hidden) {
+    showBrowserNotification('QCApp', `${data.sender}: ${data.msg}`);
+  }
+});
+
+// === Typing Indicator ===
+socket.on('typing', (user) => {
+  if (user !== userName) {
+    document.getElementById('typing-user').textContent = `${user === 'Pig' ? '🐷 Pig' : '🐶 Dog'}`;
+    document.getElementById('typing-indicator').style.display = 'flex';
+  }
+});
+
+socket.on('stopTyping', (user) => {
+  if (user !== userName) {
+    document.getElementById('typing-indicator').style.display = 'none';
+  }
+});
+
+// === Online Status Indicator ===
+socket.on('userStatus', ({ user, status, lastSeen }) => {
+  if (user !== userName) {
+    const icon = user === 'Dog' ? '🐶' : '🐷';
+    const displayStatus = status === 'online'
+      ? '🟢 Online'
+      : `🔴 Last seen: ${new Date(lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+    document.getElementById('status-display').innerHTML = `
+      ${icon} ${user}<br>
+      ${displayStatus}
+    `;
+  }
+  if (userName === 'Dog' && user !== userName && status === 'online') {
+    showBrowserNotification('QCApp', `${user} is online`);
+  }
+});
+
+// === Message Seen / Delete Events
+socket.on('message removed', (messageId) => {
+  const msgEl = document.querySelector(`[data-id="${messageId}"]`);
+  if (msgEl) msgEl.remove();
+});
+
+socket.on('all messages removed', () => {
+  document.getElementById('messages').innerHTML = '';
+});
+
+socket.on('otherUserStatus', ({ username, online, lastSeen }) => {
+  const iconMap = { 'Dog': '🐶', 'Pig': '🐷' };
+  const icon = iconMap[username] || '👤';
+
+  const displayStatus = online
+    ? `<span class="online-dot"></span> Online`
+    : `<span class="offline-dot"></span> Last seen: ${new Date(lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+  document.getElementById('status-display').innerHTML = `
+    <div class="status-name">${icon} ${username}</div>
+    <div class="status-info">${displayStatus}</div>
+  `;
+});
+
 // === Send Message ===
 document.getElementById('send-btn').addEventListener('click', () => {
   const msgInput = document.getElementById('message');
@@ -82,7 +155,6 @@ document.getElementById('send-btn').addEventListener('click', () => {
   if (msg) {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // ✅ Include reply if present
     socket.emit('chat message', {
       sender: userName,
       msg,
@@ -94,7 +166,6 @@ document.getElementById('send-btn').addEventListener('click', () => {
       } : null
     });
 
-    // ✅ Clear input and reply preview
     msgInput.value = '';
     msgInput.focus();
     replyTo = null;
@@ -103,8 +174,6 @@ document.getElementById('send-btn').addEventListener('click', () => {
   }
 });
 
-
-// === Typing Event ===
 const msgInput = document.getElementById('message');
 msgInput.addEventListener('input', () => {
   if (msgInput.value.trim()) {
@@ -119,12 +188,10 @@ msgInput.addEventListener('input', () => {
   }
 });
 
-// === Clear Chat ===
 document.getElementById('clear-btn').addEventListener('click', () => {
   showClearChatMenu();
 });
 
-// === Back to Home ===
 document.getElementById('back-btn').addEventListener('click', () => {
   if (confirm('Are you sure you want to logout?')) {
     window.location.href = 'https://quick-chat-fumk.onrender.com/';
@@ -138,7 +205,6 @@ document.getElementById('notify-btn').addEventListener('click', () => {
 document.getElementById('goto-call').addEventListener('click', () => {
   const popup = document.createElement('div');
   popup.className = 'call-popup';
-
   popup.innerHTML = `
     <div class="call-popup-box">
       <p>Start a call:</p>
@@ -147,34 +213,30 @@ document.getElementById('goto-call').addEventListener('click', () => {
       <button id="cancel-call">❌ Cancel</button>
     </div>
   `;
-
   document.body.appendChild(popup);
 
-  // Audio Call
   document.getElementById('start-audio-call').addEventListener('click', () => {
     window.open('/VoiceCall.html', '_blank', 'width=400,height=600');
     popup.remove();
   });
 
-  // Video Call
   document.getElementById('start-video-call').addEventListener('click', () => {
     alert('Video call functionality coming soon!');
     popup.remove();
   });
 
-  // Cancel
   document.getElementById('cancel-call').addEventListener('click', () => {
     popup.remove();
   });
 });
 
-
-// === Reply ===
 document.getElementById('cancel-reply').addEventListener('click', () => {
   replyTo = null;
   document.getElementById('reply-preview').style.display = 'none';
 });
 
+// AddMessageToDOM, Clear/Delete menus, Notification, ScrollToOriginal functions
+// ... No change needed in those. Keep all your existing definitions for those.
 
 function showClearChatMenu() {
   const oldMenu = document.getElementById('clear-menu');
