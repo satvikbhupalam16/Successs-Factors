@@ -63,7 +63,7 @@ io.on('connection', (socket) => {
       if (user.username === 'Pig') {
         twilioClient.messages
           .create({
-            body: 'WakeUp!!',
+            body: 'Online Ready!',
             from: FROM_NUMBER,
             to: TO_NUMBER
           })
@@ -102,6 +102,20 @@ io.on('connection', (socket) => {
       socket.emit('auth error', 'Server error.');
     }
   });
+
+  socket.on('send sms notify', ({ from }) => {
+  if (from === 'Pig') {
+    twilioClient.messages
+      .create({
+        body: 'WakeUp!!!',
+        from: FROM_NUMBER,
+        to: TO_NUMBER
+      })
+      .then(message => console.log(`📩 SMS sent from Pig: ${message.sid}`))
+      .catch(err => console.error('❌ SMS error:', err));
+  }
+});
+
 
   socket.on('chat message', async (data) => {
     try {
