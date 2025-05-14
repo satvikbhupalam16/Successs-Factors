@@ -118,6 +118,7 @@ io.on('connection', (socket) => {
 
 
   socket.on('chat message', async (data) => {
+    console.log('📩 Message received from:', data.sender, '-', data.msg);
     try {
       const msg = new Message({
         sender: data.sender,

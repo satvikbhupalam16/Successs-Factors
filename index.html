@@ -84,11 +84,4 @@
   <script src="client.js"></script>
 </body>
 
-<script>
-  document.getElementById('notifyButton').addEventListener('click', () => {
-    fetch('/notify', { method: 'POST' })
-      .then(res => res.ok ? alert('Notification sent!') : alert('Failed'));
-  });
-</script>
-
 </html>

@@ -8,14 +8,7 @@ let pendingMessages = [];
 let chatReady = false;
 let typingTimeout;
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(() => console.log('✅ Service Worker Registered'))
-      .catch(err => console.error('❌ SW Error:', err));
-  });
-}
-
+console.log('🚀 client.js loaded');
 // === Secret Code Flow ===
 document.getElementById('submit-code').addEventListener('click', () => {
   const secretCode = document.getElementById('secret-code').value.trim();
@@ -27,32 +20,29 @@ document.getElementById('submit-code').addEventListener('click', () => {
   }
 });
 
-// === Login Validation (Username + Password) ===
+// === Login Validation ===
 document.getElementById('submit-login').addEventListener('click', () => {
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
-
   socket.emit('set name', { name: username, password });
 });
 
-// === After Successful Login
+// === Handle Login Success ===
 socket.on('name set', (data) => {
   userName = data.name;
+  chatReady = true;
 
   if (userName === 'Dog' && 'Notification' in window && Notification.permission !== 'granted') {
     Notification.requestPermission().then((permission) => {
       console.log('Notification permission:', permission);
     });
-    console.log('Logged in as:', userName);
   }
-
-  chatReady = true;
-
-  pendingMessages.forEach(data => addMessageToDOM(data));
-  pendingMessages = [];
 
   document.getElementById('name-container').style.display = 'none';
   document.getElementById('chat').style.display = 'flex';
+
+  pendingMessages.forEach(data => addMessageToDOM(data));
+  pendingMessages = [];
 });
 
 socket.on('auth error', (msg) => {
@@ -75,7 +65,7 @@ document.getElementById('toggle-password').addEventListener('click', () => {
   }
 });
 
-// === Chat History (Handled after chatReady)
+// === Chat History
 socket.on('chat history', (messages) => {
   if (!chatReady) {
     pendingMessages = messages;
@@ -84,77 +74,13 @@ socket.on('chat history', (messages) => {
   }
 });
 
-// === Live Messages ===
-socket.on('chat message', (data) => {
-  addMessageToDOM(data);
-  if (userName === 'Dog' && data.sender !== userName && document.hidden) {
-    showBrowserNotification('QCApp', `${data.sender}: ${data.msg}`);
-  }
-});
-
-// === Typing Indicator ===
-socket.on('typing', (user) => {
-  if (user !== userName) {
-    document.getElementById('typing-user').textContent = `${user === 'Pig' ? '🐷 Pig' : '🐶 Dog'}`;
-    document.getElementById('typing-indicator').style.display = 'flex';
-  }
-});
-
-socket.on('stopTyping', (user) => {
-  if (user !== userName) {
-    document.getElementById('typing-indicator').style.display = 'none';
-  }
-});
-
-// === Online Status Indicator ===
-socket.on('userStatus', ({ user, status, lastSeen }) => {
-  if (user !== userName) {
-    const icon = user === 'Dog' ? '🐶' : '🐷';
-    const displayStatus = status === 'online'
-      ? '🟢 Online'
-      : `🔴 Last seen: ${new Date(lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-
-    document.getElementById('status-display').innerHTML = `
-      ${icon} ${user}<br>
-      ${displayStatus}
-    `;
-  }
-  if (userName === 'Dog' && user !== userName && status === 'online') {
-    showBrowserNotification('QCApp', `${user} is online`);
-  }
-});
-
-// === Message Seen / Delete Events
-socket.on('message removed', (messageId) => {
-  const msgEl = document.querySelector(`[data-id="${messageId}"]`);
-  if (msgEl) msgEl.remove();
-});
-
-socket.on('all messages removed', () => {
-  document.getElementById('messages').innerHTML = '';
-});
-
-socket.on('otherUserStatus', ({ username, online, lastSeen }) => {
-  const iconMap = { 'Dog': '🐶', 'Pig': '🐷' };
-  const icon = iconMap[username] || '👤';
-
-  const displayStatus = online
-    ? `<span class="online-dot"></span> Online`
-    : `<span class="offline-dot"></span> Last seen: ${new Date(lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-
-  document.getElementById('status-display').innerHTML = `
-    <div class="status-name">${icon} ${username}</div>
-    <div class="status-info">${displayStatus}</div>
-  `;
-});
-
-// === Send Message ===
-document.getElementById('send-btn').addEventListener('click', () => {
+// === Send Message
+document.getElementById('send-btn').addEventListener('click', (e) => {
+  e.preventDefault();
   const msgInput = document.getElementById('message');
   const msg = msgInput.value.trim();
   if (msg) {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
     socket.emit('chat message', {
       sender: userName,
       msg,
@@ -174,6 +100,7 @@ document.getElementById('send-btn').addEventListener('click', () => {
   }
 });
 
+// === Typing Event
 const msgInput = document.getElementById('message');
 msgInput.addEventListener('input', () => {
   if (msgInput.value.trim()) {
@@ -188,20 +115,57 @@ msgInput.addEventListener('input', () => {
   }
 });
 
+// === Typing Indicator
+socket.on('typing', (user) => {
+  if (user !== userName) {
+    document.getElementById('typing-user').textContent = `${user === 'Pig' ? '🐷 Pig' : '🐶 Dog'}`;
+    document.getElementById('typing-indicator').style.display = 'flex';
+  }
+});
+
+socket.on('stopTyping', (user) => {
+  if (user !== userName) {
+    document.getElementById('typing-indicator').style.display = 'none';
+  }
+});
+
+// === Online Status Indicator
+socket.on('userStatus', ({ user, status, lastSeen }) => {
+  if (user !== userName) {
+    const icon = user === 'Dog' ? '🐶' : '🐷';
+    const displayStatus = status === 'online'
+      ? '🟢 Online'
+      : `🔴 Last seen: ${new Date(lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+    document.getElementById('status-display').innerHTML = `
+      ${icon} ${user}<br>
+      ${displayStatus}
+    `;
+  }
+
+  if (userName === 'Dog' && user !== userName && status === 'online') {
+    showBrowserNotification('QCApp', `${user} is online`);
+  }
+});
+
+// === Notify Button
+document.getElementById('notify-btn').addEventListener('click', () => {
+  socket.emit('send sms notify', { from: userName });
+});
+
+// === Clear Chat
 document.getElementById('clear-btn').addEventListener('click', () => {
   showClearChatMenu();
 });
 
+// === Back to Home
 document.getElementById('back-btn').addEventListener('click', () => {
   if (confirm('Are you sure you want to logout?')) {
     window.location.href = 'https://quick-chat-fumk.onrender.com/';
   }
 });
 
-document.getElementById('notify-btn').addEventListener('click', () => {
-  socket.emit('send sms notify', { from: userName });
-});
-
+// === Call Button
 document.getElementById('goto-call').addEventListener('click', () => {
   const popup = document.createElement('div');
   popup.className = 'call-popup';
@@ -230,6 +194,7 @@ document.getElementById('goto-call').addEventListener('click', () => {
   });
 });
 
+// === Cancel Reply
 document.getElementById('cancel-reply').addEventListener('click', () => {
   replyTo = null;
   document.getElementById('reply-preview').style.display = 'none';
@@ -490,6 +455,7 @@ socket.on('chat history', (messages) => {
 
 // === Live Messages ===
 socket.on('chat message', (data) => {
+  console.log('🔥 chat message received:', data);
   addMessageToDOM(data);
   if (userName === 'Dog' && data.sender !== userName && document.hidden) {
     showBrowserNotification('QCApp', `${data.sender}: ${data.msg}`);
