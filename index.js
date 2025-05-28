@@ -5,6 +5,7 @@ const socketIo = require('socket.io');
 const mongoose = require('mongoose');
 const path = require('path');
 
+
 const User = require('./models/User');
 const Message = require('./models/Message');
 
@@ -20,6 +21,11 @@ const TWILIO_AUTH = process.env.TWILIO_AUTH;
 const twilioClient = require('twilio')(process.env.TWILIO_SID, process.env.TWILIO_AUTH);
 const FROM_NUMBER = process.env.FROM_NUMBER;
 const TO_NUMBER = process.env.TO_NUMBER;
+
+//Telegram setup
+const axios = require('axios');
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const CHAT_ID = process.env.CHAT_ID;
 
 // ✅ MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
@@ -60,7 +66,7 @@ io.on('connection', (socket) => {
       socket.emit('name set', { name: user.username });
 
       // ✅ Send SMS if Pig logs in
-      if (user.username === 'Pig') {
+/*      if (user.username === 'Pig') {
         twilioClient.messages
           .create({
             body: 'Online Ready!',
@@ -80,7 +86,29 @@ io.on('connection', (socket) => {
           .then(call => console.log(`✅ Call initiated: ${call.sid}`))
           .catch(err => console.error('❌ Call error:', err));
       }
+*/
 
+      // ✅ Send SMS if Pig logs in
+      if (user.username === 'Pig') {
+        // Send Telegram message
+        axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          chat_id: CHAT_ID,
+          text: 'Online Ready!!'
+        })
+        .then(() => console.log('✅ Telegram message sent'))
+        .catch(err => console.error('❌ Telegram error:', err));
+      }
+
+        // Make Voice Call
+        twilioClient.calls
+        .create({
+          twiml: '<Response><Say voice="alice">Wake up! Pig is online!</Say></Response>',
+          from: FROM_NUMBER,
+          to: TO_NUMBER
+        })
+        .then(call => console.log(`✅ Call initiated: ${call.sid}`))
+        .catch(err => console.error('❌ Call error:', err));
+      
       const allMessages = await Message.find().sort({ createdAt: -1 }).lean();
       const deletedIds = (user.deletedMessages || []).map(id => id.toString());
       const filteredMessages = allMessages.filter(msg => !deletedIds.includes(msg._id.toString()));
@@ -103,6 +131,7 @@ io.on('connection', (socket) => {
     }
   });
 
+/*
   socket.on('send sms notify', ({ from }) => {
   if (from === 'Pig') {
     twilioClient.messages
@@ -116,6 +145,19 @@ io.on('connection', (socket) => {
   }
 });
 
+*/
+
+  socket.on('send sms notify', ({ from }) => {
+    if (from === 'Pig') {
+      axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          chat_id: CHAT_ID,
+          text: 'Notified!'
+        })
+        .then(() => console.log('✅ Telegram message sent'))
+        .catch(err => console.error('❌ Telegram error:', err));
+      }
+    }
+  );
 
   socket.on('chat message', async (data) => {
     console.log('📩 Message received from:', data.sender, '-', data.msg);
