@@ -443,7 +443,7 @@ socket.on('userStatus', ({ user, status, lastSeen }) => {
   
 });
 
-
+/* Commenting duplicate history
 // === Message History ===
 socket.on('chat history', (messages) => {
   if (!chatReady) {
@@ -451,7 +451,7 @@ socket.on('chat history', (messages) => {
   } else {
     messages.forEach(data => addMessageToDOM(data));
   }
-});
+}); */
 
 // === Live Messages ===
 socket.on('chat message', (data) => {
