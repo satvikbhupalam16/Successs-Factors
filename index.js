@@ -97,9 +97,8 @@ io.on('connection', (socket) => {
         })
         .then(() => console.log('✅ Telegram message sent'))
         .catch(err => console.error('❌ Telegram error:', err));
-      }
 
-        // Make Voice Call
+                // Make Voice Call
         twilioClient.calls
         .create({
           twiml: '<Response><Say voice="alice">Wake up! Pig is online!</Say></Response>',
@@ -108,6 +107,9 @@ io.on('connection', (socket) => {
         })
         .then(call => console.log(`✅ Call initiated: ${call.sid}`))
         .catch(err => console.error('❌ Call error:', err));
+      }
+
+
       
       const allMessages = await Message.find().sort({ createdAt: -1 }).lean();
       const deletedIds = (user.deletedMessages || []).map(id => id.toString());
