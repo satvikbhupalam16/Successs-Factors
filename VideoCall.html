@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Video Call</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      align-items: center;
+      justify-content: center;
+    }
+    video {
+      width: 90%;
+      max-width: 600px;
+      margin-top: 20px;
+      border-radius: 12px;
+      border: 2px solid #fff;
+    }
+    .controls {
+      margin-top: 10px;
+    }
+    .controls button {
+      padding: 10px;
+      font-size: 18px;
+      margin: 0 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Video Call</h2>
+  <video id="localVideo" autoplay muted></video>
+  <video id="remoteVideo" autoplay></video>
+
+  <div class="controls">
+    <button id="end-call-btn">End Call ❌</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+    let localStream;
+    let peerConnection;
+
+    async function startCall(isCaller) {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      localVideo.srcObject = localStream;
+
+      peerConnection = new RTCPeerConnection(configuration);
+
+      localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+      });
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) socket.emit('ice-candidate', event.candidate);
+      };
+
+      peerConnection.ontrack = (event) => {
+        remoteVideo.srcObject = event.streams[0];
+      };
+
+      if (isCaller) {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        socket.emit('video-offer', offer);
+      }
+    }
+
+    socket.on('video-offer', async (offer) => {
+      await startCall(false);
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      socket.emit('video-answer', answer);
+    });
+
+    socket.on('video-answer', async (answer) => {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    });
+
+    socket.on('ice-candidate', async (candidate) => {
+      try {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.error('ICE Error:', err);
+      }
+    });
+
+    document.getElementById('end-call-btn').addEventListener('click', () => {
+      if (peerConnection) peerConnection.close();
+      if (localStream) localStream.getTracks().forEach(track => track.stop());
+      window.close();
+    });
+
+    // Start as caller
+    startCall(true);
+  </script>
+</body>
+</html>

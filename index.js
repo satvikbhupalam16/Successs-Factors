@@ -43,9 +43,64 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'SF_Home_Page.html'
 app.get('/chat', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.use(express.static(path.join(__dirname)));
 app.get('/VoiceCall.html', (req, res) => res.sendFile(path.join(__dirname, 'VoiceCall.html')));
+app.get('/VoiceCall.html', (req, res) => res.sendFile(path.join(__dirname, 'VoiceCall.html')));
+app.use('/VoiceCall.js', express.static(path.join(__dirname, 'VoiceCall.js')));
 
 // === Socket.IO Logic ===
 io.on('connection', (socket) => {
+
+  let ongoingCall = null;
+  // VOICE/VIDEO CALL SIGNALING
+  socket.on('initiate-call', ({ from, type }) => {
+    ongoingCall = { from, type, status: 'ringing' };
+    socket.broadcast.emit('incoming-call', { from, type });
+  });
+  
+  socket.on('user-joined', (username) => {
+    if (ongoingCall && ongoingCall.status === 'ringing' && username !== ongoingCall.from) {
+      const to = username;
+      io.to(onlineUsers[to]).emit('incoming-call', {
+        from: ongoingCall.from,
+        type: ongoingCall.type
+      });
+    }
+  });
+
+  
+socket.on('call-accept', ({ from }) => {
+  if (ongoingCall) {
+    ongoingCall.status = 'connected';
+    io.emit('call-accepted');
+  } else {
+    console.warn('⚠️ No ongoingCall found when call-accept received');
+  }
+});
+
+socket.on('call-decline', ({ from }) => {
+  ongoingCall = null;
+  io.emit('call-declined');
+});
+
+socket.on('end-call', () => {
+  ongoingCall = null;
+  io.emit('call-ended');
+});  
+  
+  socket.on('video-offer', (offer) => {
+  socket.broadcast.emit('video-offer', offer);
+});
+
+socket.on('video-answer', (answer) => {
+  socket.broadcast.emit('video-answer', answer);
+});
+
+  // WebRTC signaling events
+  socket.on('voice-offer', (data) => socket.broadcast.emit('voice-offer', data));
+  socket.on('voice-answer', (data) => socket.broadcast.emit('voice-answer', data));
+  socket.on('video-offer', (data) => socket.broadcast.emit('video-offer', data));
+  socket.on('video-answer', (data) => socket.broadcast.emit('video-answer', data));
+  socket.on('ice-candidate', (candidate) => socket.broadcast.emit('ice-candidate', candidate));
+
   console.log('🔌 A user connected');
 
   socket.on('set name', async (data) => {

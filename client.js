@@ -1,12 +1,20 @@
 const socket = io();
 let userName = '';
-
+let isInCall = false;
 let selectedMessageId = null;
 let selectedMessageSender = null;
 let replyTo = null;
 let pendingMessages = [];
 let chatReady = false;
+let localStream, peerConnection;
 let typingTimeout;
+
+function updateCallStatusUI(message) {
+  const indicator = document.getElementById('typing-indicator');
+  const statusText = document.getElementById('typing-user');
+  indicator.style.display = 'flex';
+  statusText.textContent = message;
+}
 
 console.log('🚀 client.js loaded');
 // === Secret Code Flow ===
@@ -31,6 +39,8 @@ document.getElementById('submit-login').addEventListener('click', () => {
 socket.on('name set', (data) => {
   userName = data.name;
   chatReady = true;
+
+  socket.emit('user-joined', userName);
 
   if (userName === 'Dog' && 'Notification' in window && Notification.permission !== 'granted') {
     Notification.requestPermission().then((permission) => {
@@ -179,15 +189,19 @@ document.getElementById('goto-call').addEventListener('click', () => {
   `;
   document.body.appendChild(popup);
 
-  document.getElementById('start-audio-call').addEventListener('click', () => {
-    window.open('/VoiceCall.html', '_blank', 'width=400,height=600');
-    popup.remove();
-  });
+document.getElementById('start-audio-call').addEventListener('click', () => {
+  socket.emit('initiate-call', { from: userName, type: 'voice' });
+  updateCallStatusUI(`Calling ${userName === 'Pig' ? 'Dog' : 'Pig'}...`);
+  window.open('/VoiceCall.html', '_blank', 'width=400,height=600');
+  popup.remove();
+});
 
-  document.getElementById('start-video-call').addEventListener('click', () => {
-    alert('Video call functionality coming soon!');
-    popup.remove();
-  });
+document.getElementById('start-video-call').addEventListener('click', () => {
+  socket.emit('call-initiate', { from: userName, type: 'video' });
+  showOutgoingCallUI('video');
+  popup.remove();
+});
+
 
   document.getElementById('cancel-call').addEventListener('click', () => {
     popup.remove();
@@ -348,6 +362,20 @@ function formatMessageText(text) {
   });
 }
 
+function showOutgoingCallUI(type) {
+  document.getElementById('typing-indicator').style.display = 'flex';
+  document.getElementById('call-ui').innerHTML = `
+    <span>Calling ${userName === 'Pig' ? 'Dog' : 'Pig'}...</span>
+    <span id="cancel-call-btn">❌</span>
+  `;
+
+  document.getElementById('cancel-call-btn').onclick = () => {
+    document.getElementById('typing-indicator').style.display = 'none';
+    socket.emit('call-decline', { from: userName });
+  };
+}
+
+
 // === Add Message to DOM ===
 function addMessageToDOM(data) {
   const isUser = userName && data.sender === userName;
@@ -410,6 +438,104 @@ function addMessageToDOM(data) {
   document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
 }
 
+// === Incoming Call Handling ===
+socket.on('incoming-call', ({ from, type }) => {
+  const indicator = document.getElementById('typing-indicator');
+  indicator.style.display = 'flex';
+
+  const oldCallUI = indicator.querySelector('.incoming-call-ui');
+  if (oldCallUI) oldCallUI.remove();
+
+  const ui = document.createElement('div');
+  ui.className = 'incoming-call-ui';
+  ui.innerHTML = `
+    <button id="accept-call">Accept</button>
+    <button id="decline-call">Reject</button>
+  `;
+  indicator.appendChild(ui);
+
+  document.getElementById('accept-call').onclick = () => {
+    socket.emit('call-accept', { from });
+    isInCall = true;
+    window.open(`/${type === 'video' ? 'VideoCall.html' : 'VoiceCall.html'}`, '_blank', 'width=600,height=600');
+    ui.remove();
+  };
+
+  document.getElementById('decline-call').onclick = () => {
+    socket.emit('call-decline', { from });
+    indicator.style.display = 'none';
+    ui.remove();
+  };
+});
+
+// === Call Response Handling ===
+socket.on('call-accepted', () => {
+  updateCallStatusUI('Call Connected');
+  isInCall = true;
+});
+
+socket.on('call-declined', () => {
+  updateCallStatusUI('Call Declined');
+  isInCall = false;  // ✅ reset call state
+  setTimeout(() => {
+    document.getElementById('typing-indicator').style.display = 'none';
+  }, 3000);
+});
+
+
+socket.on('call-ended', () => {
+  if (isInCall) {
+    updateCallStatusUI('Call Ended');
+    isInCall = false;
+    setTimeout(() => {
+      document.getElementById('typing-indicator').style.display = 'none';
+    }, 3000);
+  }
+});
+
+// === Cancel Reply ===
+document.getElementById('cancel-reply').addEventListener('click', () => {
+  replyTo = null;
+  document.getElementById('reply-preview').style.display = 'none';
+});
+
+function showInCallUI(type) {
+  let timer = 0;
+  const interval = setInterval(() => {
+    timer++;
+    const minutes = Math.floor(timer / 60).toString().padStart(2, '0');
+    const seconds = (timer % 60).toString().padStart(2, '0');
+    document.getElementById('call-ui').querySelector('.call-timer').textContent = `${minutes}:${seconds}`;
+  }, 1000);
+
+  document.getElementById('call-ui').innerHTML = `
+    <div>${type.toUpperCase()} Call with ${userName === 'Pig' ? 'Dog' : 'Pig'}</div>
+    <div class="call-timer">00:00</div>
+    <button id="mute-btn">🔇</button>
+    ${type === 'video' ? '<button id="cam-toggle">📷</button>' : ''}
+    <button id="end-call-btn">❌</button>
+  `;
+
+  document.getElementById('mute-btn').onclick = () => {
+    const mic = localStream.getAudioTracks()[0];
+    mic.enabled = !mic.enabled;
+  };
+
+  if (type === 'video') {
+    document.getElementById('cam-toggle').onclick = () => {
+      const cam = localStream.getVideoTracks()[0];
+      cam.enabled = !cam.enabled;
+    };
+  }
+
+  document.getElementById('end-call-btn').onclick = () => {
+    clearInterval(interval);
+    if (peerConnection) peerConnection.close();
+    if (localStream) localStream.getTracks().forEach(t => t.stop());
+    document.getElementById('typing-indicator').style.display = 'none';
+  };
+}
+
 // === Typing Indicator ===
 socket.on('typing', (user) => {
   if (user !== userName) {
@@ -423,6 +549,60 @@ socket.on('stopTyping', (user) => {
     document.getElementById('typing-indicator').style.display = 'none';
   }
 });
+
+const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+async function startWebRTCCall(type, isCaller) {
+  localStream = await navigator.mediaDevices.getUserMedia({
+    audio: true,
+    video: type === 'video'
+  });
+
+  peerConnection = new RTCPeerConnection(config);
+  localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+  peerConnection.onicecandidate = (e) => {
+    if (e.candidate) socket.emit('ice-candidate', e.candidate);
+  };
+
+  peerConnection.ontrack = (e) => {
+    if (type === 'video') {
+      const video = document.createElement('video');
+      video.srcObject = e.streams[0];
+      video.autoplay = true;
+      video.style.width = '100%';
+      document.getElementById('call-ui').appendChild(video);
+    } else {
+      const audio = new Audio();
+      audio.srcObject = e.streams[0];
+      audio.play();
+    }
+  };
+
+  if (isCaller) {
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    socket.emit(`${type}-offer`, offer);
+  }
+
+  // ICE and answer logic already handled in socket events
+}
+
+socket.on('voice-offer', async (offer) => {
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+  const answer = await peerConnection.createAnswer();
+  await peerConnection.setLocalDescription(answer);
+  socket.emit('voice-answer', answer);
+});
+
+socket.on('voice-answer', (answer) => {
+  peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+});
+
+socket.on('ice-candidate', (candidate) => {
+  peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+});
+
 
 // === Online Status Indicator ===
 socket.on('userStatus', ({ user, status, lastSeen }) => {
