@@ -43,7 +43,6 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'SF_Home_Page.html'
 app.get('/chat', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.use(express.static(path.join(__dirname)));
 app.get('/VoiceCall.html', (req, res) => res.sendFile(path.join(__dirname, 'VoiceCall.html')));
-app.get('/VoiceCall.html', (req, res) => res.sendFile(path.join(__dirname, 'VoiceCall.html')));
 app.use('/VoiceCall.js', express.static(path.join(__dirname, 'VoiceCall.js')));
 
 // === Socket.IO Logic ===
@@ -51,10 +50,13 @@ io.on('connection', (socket) => {
 
   let ongoingCall = null;
   // VOICE/VIDEO CALL SIGNALING
-  socket.on('initiate-call', ({ from, type }) => {
-    ongoingCall = { from, type, status: 'ringing' };
-    socket.broadcast.emit('incoming-call', { from, type });
-  });
+  socket.on('initiate-call', ({ from, to, type }) => {
+  ongoingCall = { from, to, type, status: 'ringing' };
+  if (onlineUsers[to]) {
+    io.to(onlineUsers[to]).emit('incoming-call', { from, type });
+  }
+});
+
   
   socket.on('user-joined', (username) => {
     if (ongoingCall && ongoingCall.status === 'ringing' && username !== ongoingCall.from) {
@@ -70,16 +72,20 @@ io.on('connection', (socket) => {
 socket.on('call-accept', ({ from }) => {
   if (ongoingCall) {
     ongoingCall.status = 'connected';
-    io.emit('call-accepted');
-  } else {
-    console.warn('⚠️ No ongoingCall found when call-accept received');
+    io.to(onlineUsers[ongoingCall.from]).emit('call-accepted');
+    io.to(onlineUsers[ongoingCall.to]).emit('call-accepted');
   }
 });
 
+
 socket.on('call-decline', ({ from }) => {
-  ongoingCall = null;
-  io.emit('call-declined');
+  if (ongoingCall) {
+    io.to(onlineUsers[ongoingCall.from]).emit('call-declined');
+    io.to(onlineUsers[ongoingCall.to]).emit('call-declined');
+    ongoingCall = null;
+  }
 });
+
 
 socket.on('end-call', () => {
   ongoingCall = null;

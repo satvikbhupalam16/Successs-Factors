@@ -190,9 +190,9 @@ document.getElementById('goto-call').addEventListener('click', () => {
   document.body.appendChild(popup);
 
 document.getElementById('start-audio-call').addEventListener('click', () => {
-  socket.emit('initiate-call', { from: userName, type: 'voice' });
+  socket.emit('initiate-call', { from: userName, to: (userName === 'Pig' ? 'Dog' : 'Pig'), type: 'voice' });
   updateCallStatusUI(`Calling ${userName === 'Pig' ? 'Dog' : 'Pig'}...`);
-  window.open('/VoiceCall.html', '_blank', 'width=400,height=600');
+  window.open(`/VoiceCall.html?caller=true&from=${userName}`, '_blank', 'width=400,height=600');
   popup.remove();
 });
 
@@ -552,6 +552,7 @@ socket.on('stopTyping', (user) => {
 
 const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
+/*
 async function startWebRTCCall(type, isCaller) {
   localStream = await navigator.mediaDevices.getUserMedia({
     audio: true,
@@ -587,7 +588,7 @@ async function startWebRTCCall(type, isCaller) {
 
   // ICE and answer logic already handled in socket events
 }
-
+*/
 socket.on('voice-offer', async (offer) => {
   await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
   const answer = await peerConnection.createAnswer();

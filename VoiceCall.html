@@ -5,15 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Voice Call</title>
   <link rel="stylesheet" href="/VoiceCall.css" />
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 </head>
 <body>
   <div class="call-container">
-    <div class="caller-name" id="caller-name">Calling...</div>
-    <div class="call-timer" id="call-timer">00:00</div>
-
+    <div class="caller-info">
+      <h2 id="caller-status">Connecting...</h2>
+      <div id="call-duration">00:00</div>
+    </div>
     <div class="call-controls">
-      <button id="mute-btn" title="Toggle Mute">🔇</button>
-      <button id="end-call-btn" title="End Call">❌</button>
+      <button id="mute" class="control-btn" title="Mute/Unmute"><i class="fas fa-microphone"></i></button>
+      <button id="end-call" class="control-btn end-btn" title="Hang Up"><i class="fas fa-phone-slash"></i></button>
+      <button id="video-toggle" class="control-btn" title="Toggle Video"><i class="fas fa-video"></i></button>
     </div>
   </div>
 

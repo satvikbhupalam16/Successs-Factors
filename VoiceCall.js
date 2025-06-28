@@ -13,9 +13,16 @@ const config = {
 const timerEl = document.getElementById('call-timer');
 const muteBtn = document.getElementById('mute-btn');
 const endCallBtn = document.getElementById('end-call-btn');
-const callerName = document.getElementById('caller-name');
+const callerNameEl = document.getElementById('caller-name');
 
 let isMuted = false;
+
+// Query params
+const urlParams = new URLSearchParams(window.location.search);
+const isCaller = urlParams.get('caller') === 'true';
+const fromUser = urlParams.get('from') || 'Unknown';
+
+callerNameEl.textContent = isCaller ? 'Calling...' : 'Incoming Call...';
 
 // Timer
 function startTimer() {
@@ -31,7 +38,12 @@ function startTimer() {
 
 // Start Call
 async function startCall(isCaller) {
-  localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err) {
+    alert('Microphone access is required for voice calls.');
+    return;
+  }
 
   peerConnection = new RTCPeerConnection(config);
 
@@ -56,29 +68,33 @@ async function startCall(isCaller) {
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
     socket.emit('voice-offer', offer);
-    callerName.textContent = 'Waiting for response...';
+    callerNameEl.textContent = 'Waiting for response...';
   }
 
   startTimer();
 }
 
-// Accept offer if received
+// Handle offer if callee
 socket.on('voice-offer', async (offer) => {
-  await startCall(false);
-  await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-  const answer = await peerConnection.createAnswer();
-  await peerConnection.setLocalDescription(answer);
-  socket.emit('voice-answer', answer);
-  callerName.textContent = 'Call Connected';
+  if (!isCaller) {
+    await startCall(false);
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    socket.emit('voice-answer', answer);
+    callerNameEl.textContent = 'Call Connected';
+  }
 });
 
-// Receive answer if you are caller
+// Handle answer if caller
 socket.on('voice-answer', async (answer) => {
-  await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-  callerName.textContent = 'Call Connected';
+  if (isCaller) {
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    callerNameEl.textContent = 'Call Connected';
+  }
 });
 
-// ICE candidate
+// Handle ICE
 socket.on('ice-candidate', async (candidate) => {
   if (peerConnection) {
     try {
@@ -116,5 +132,5 @@ muteBtn.onclick = () => {
 // End Button
 endCallBtn.onclick = () => endCall();
 
-// Start WebRTC logic as caller by default
-startCall(true);
+// Start call
+startCall(isCaller);
