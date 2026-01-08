@@ -43,6 +43,18 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'SF_Home_Page.html'
 app.get('/chat', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.use(express.static(path.join(__dirname)));
 app.get('/VoiceCall.html', (req, res) => res.sendFile(path.join(__dirname, 'VoiceCall.html')));
+app.get('/api/messages', async (req, res) => {
+  try {
+    const messages = await Message.find({})
+      .sort({ createdAt: 1 })   // oldest → newest
+      .limit(100);              // safety limit
+
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
 app.use('/VoiceCall.js', express.static(path.join(__dirname, 'VoiceCall.js')));
 
 // === Socket.IO Logic ===

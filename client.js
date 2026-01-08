@@ -9,6 +9,10 @@ let chatReady = false;
 let localStream, peerConnection;
 let typingTimeout;
 
+let inactivityTimer = null;
+const INACTIVITY_LIMIT = 2 * 60 * 1000; // 2 minutes
+
+
 function updateCallStatusUI(message) {
   const indicator = document.getElementById('typing-indicator');
   const statusText = document.getElementById('typing-user');
@@ -50,7 +54,7 @@ socket.on('name set', (data) => {
 
   document.getElementById('name-container').style.display = 'none';
   document.getElementById('chat').style.display = 'flex';
-
+  resetInactivityTimer();
   pendingMessages.forEach(data => addMessageToDOM(data));
   pendingMessages = [];
 });
@@ -101,6 +105,7 @@ document.getElementById('send-btn').addEventListener('click', (e) => {
         _id: replyTo._id
       } : null
     });
+    resetInactivityTimer();
 
     msgInput.value = '';
     msgInput.focus();
@@ -162,6 +167,13 @@ socket.on('userStatus', ({ user, status, lastSeen }) => {
 document.getElementById('notify-btn').addEventListener('click', () => {
   socket.emit('send sms notify', { from: userName });
 });
+
+// === Refresh Button (DB Sync)
+document.getElementById('refresh-btn').addEventListener('click', () => {
+  resetInactivityTimer();
+  refreshMessagesFromDB();
+});
+
 
 // === Clear Chat
 document.getElementById('clear-btn').addEventListener('click', () => {
@@ -362,6 +374,35 @@ function formatMessageText(text) {
   });
 }
 
+function resetInactivityTimer() {
+  if (inactivityTimer) clearTimeout(inactivityTimer);
+
+  inactivityTimer = setTimeout(() => {
+    alert('Session expired due to inactivity');
+    window.location.href = 'https://quick-chat-fumk.onrender.com/';
+  }, INACTIVITY_LIMIT);
+}
+
+
+async function refreshMessagesFromDB() {
+  try {
+    console.log('🔄 Refreshing messages from DB...');
+
+    const res = await fetch('/api/messages');
+    const messages = await res.json();
+
+    const messagesContainer = document.getElementById('messages');
+    messagesContainer.innerHTML = ''; // clear UI
+
+    messages.forEach(msg => addMessageToDOM(msg));
+
+  } catch (err) {
+    console.error('❌ Failed to refresh messages:', err);
+    alert('Failed to refresh messages');
+  }
+}
+
+
 function showOutgoingCallUI(type) {
   document.getElementById('typing-indicator').style.display = 'flex';
   document.getElementById('call-ui').innerHTML = `
@@ -492,6 +533,13 @@ socket.on('call-ended', () => {
     }, 3000);
   }
 });
+
+socket.on('connect', () => {
+  console.log('🔌 Socket reconnected, syncing messages...');
+  resetInactivityTimer();
+  refreshMessagesFromDB();
+});
+
 
 // === Cancel Reply ===
 document.getElementById('cancel-reply').addEventListener('click', () => {
@@ -638,11 +686,14 @@ socket.on('chat history', (messages) => {
 socket.on('chat message', (data) => {
   console.log('🔥 chat message received:', data);
   addMessageToDOM(data);
+
+  resetInactivityTimer(); // ✅ activity detected
+
   if (userName === 'Dog' && data.sender !== userName && document.hidden) {
     showBrowserNotification('QCApp', `${data.sender}: ${data.msg}`);
   }
-  
 });
+
 
 // === Delete for Me ===
 socket.on('message removed', (messageId) => {
