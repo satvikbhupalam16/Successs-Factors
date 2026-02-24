@@ -35,77 +35,13 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/style.css', express.static(path.join(__dirname, 'style.css')));
 app.use('/SF_Home_Page.css', express.static(path.join(__dirname, 'SF_Home_Page.css')));
 app.use('/client.js', express.static(path.join(__dirname, 'client.js')));
-app.use('/VoiceCall.css', express.static(path.join(__dirname, 'VoiceCall.css')));
-app.use('/VoiceCall.js', express.static(path.join(__dirname, 'VoiceCall.js')));
-
-// Routes
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'SF_Home_Page.html')));
 app.get('/chat', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.use(express.static(path.join(__dirname)));
-app.get('/VoiceCall.html', (req, res) => res.sendFile(path.join(__dirname, 'VoiceCall.html')));
-app.use('/VoiceCall.js', express.static(path.join(__dirname, 'VoiceCall.js')));
+
 
 // === Socket.IO Logic ===
 io.on('connection', (socket) => {
-
-  let ongoingCall = null;
-  // VOICE/VIDEO CALL SIGNALING
-  socket.on('initiate-call', ({ from, to, type }) => {
-  ongoingCall = { from, to, type, status: 'ringing' };
-  if (onlineUsers[to]) {
-    io.to(onlineUsers[to]).emit('incoming-call', { from, type });
-  }
-});
-
-  
-  socket.on('user-joined', (username) => {
-    if (ongoingCall && ongoingCall.status === 'ringing' && username !== ongoingCall.from) {
-      const to = username;
-      io.to(onlineUsers[to]).emit('incoming-call', {
-        from: ongoingCall.from,
-        type: ongoingCall.type
-      });
-    }
-  });
-
-  
-socket.on('call-accept', ({ from }) => {
-  if (ongoingCall) {
-    ongoingCall.status = 'connected';
-    io.to(onlineUsers[ongoingCall.from]).emit('call-accepted');
-    io.to(onlineUsers[ongoingCall.to]).emit('call-accepted');
-  }
-});
-
-
-socket.on('call-decline', ({ from }) => {
-  if (ongoingCall) {
-    io.to(onlineUsers[ongoingCall.from]).emit('call-declined');
-    io.to(onlineUsers[ongoingCall.to]).emit('call-declined');
-    ongoingCall = null;
-  }
-});
-
-
-socket.on('end-call', () => {
-  ongoingCall = null;
-  io.emit('call-ended');
-});  
-  
-  socket.on('video-offer', (offer) => {
-  socket.broadcast.emit('video-offer', offer);
-});
-
-socket.on('video-answer', (answer) => {
-  socket.broadcast.emit('video-answer', answer);
-});
-
-  // WebRTC signaling events
-  socket.on('voice-offer', (data) => socket.broadcast.emit('voice-offer', data));
-  socket.on('voice-answer', (data) => socket.broadcast.emit('voice-answer', data));
-  socket.on('video-offer', (data) => socket.broadcast.emit('video-offer', data));
-  socket.on('video-answer', (data) => socket.broadcast.emit('video-answer', data));
-  socket.on('ice-candidate', (candidate) => socket.broadcast.emit('ice-candidate', candidate));
 
   console.log('🔌 A user connected');
 
@@ -125,29 +61,6 @@ socket.on('video-answer', (answer) => {
       onlineUsers[user.username] = socket.id;
 
       socket.emit('name set', { name: user.username });
-
-      // ✅ Send SMS if Pig logs in
-/*      if (user.username === 'Pig') {
-        twilioClient.messages
-          .create({
-            body: 'Online Ready!',
-            from: FROM_NUMBER,
-            to: TO_NUMBER
-          })
-          .then(message => console.log(`✅ SMS sent: ${message.sid}`))
-          .catch(err => console.error('❌ SMS error:', err));
-
-                  // Make Voice Call
-          twilioClient.calls
-          .create({
-            twiml: '<Response><Say voice="alice">Wake up! Pig is online!</Say></Response>',
-            from: FROM_NUMBER,
-            to: TO_NUMBER
-          })
-          .then(call => console.log(`✅ Call initiated: ${call.sid}`))
-          .catch(err => console.error('❌ Call error:', err));
-      }
-*/
 
       // ✅ Send SMS if Pig logs in
       if (user.username === 'Pig') {
@@ -170,8 +83,6 @@ socket.on('video-answer', (answer) => {
         .catch(err => console.error('❌ Call error:', err));
       }
 
-
-      
       const allMessages = await Message.find().sort({ createdAt: -1 }).lean();
       const deletedIds = (user.deletedMessages || []).map(id => id.toString());
       const filteredMessages = allMessages.filter(msg => !deletedIds.includes(msg._id.toString()));
