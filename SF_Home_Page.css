@@ -13,13 +13,16 @@ body {
 
 /* Container for login box */
 .login-container {
-  width: 400px;
-  padding: 40px 30px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  text-align: center;
-  background-color: white;
+    /* width: 400px; */
+    margin: 100px;
+    height: 800px;
+    padding: 40px 20px;
+    align-content: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    background-color: white;
 }
 
 /* Company logo */
