@@ -42,15 +42,22 @@ input {
   color: #e0e0e0;
 }
 
-button {
+button.submitcode {
   background: #1a73e8;
   color: white;
   border: none;
   cursor: pointer;
 }
 
+button {
+  background: #44337A;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
 button:hover {
-  background: #155ab6;
+  background: #44337A;
 }
 
 .chat-container {
@@ -65,7 +72,7 @@ button:hover {
 
 
 .chat-header {
-  background: #1a73e8;
+  background: #44337A;
   color: white;
   padding: 16px 20px;
   display: flex;
@@ -76,7 +83,7 @@ button:hover {
 }
 
 .chat-controls button {
-  background: #155ab6;
+  background: #44337A;
   margin-left: 10px;
   border-radius: 50%;
   width: 40px;
@@ -117,7 +124,7 @@ button:hover {
 }
 
 .user {
-  background-color: #1a73e8;
+  background-color: #44337A;
   align-self: flex-end;
   border-top-right-radius: 0;
   color: #fff;
@@ -199,16 +206,6 @@ button:hover {
   background-color: #f44336;
 }
 
-.delete-btn {
-  background: none;
-  border: none;
-  color: red;
-  font-size: 14px;
-  float: right;
-  cursor: pointer;
-  display: none;
-}
-
 .message-menu-btn {
   position: absolute;
   top: 4px;
@@ -243,18 +240,6 @@ button:hover {
 
 .message:hover .delete-btn {
   display: inline;
-}
-
-.delete-popup {
-  position: absolute;
-  background-color: #222;
-  border: 1px solid #444;
-  border-radius: 5px;
-  padding: 5px;
-  z-index: 1000;
-  min-width: 140px;
-  max-height: 200px;
-  overflow-y: auto;
 }
 
 .delete-popup div {
@@ -304,56 +289,13 @@ button:hover {
   margin-top: 4px;
 }
 
-.call-popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-}
-
-.call-popup-box {
-  background: #1f1f1f;
-  padding: 20px;
-  border-radius: 10px;
-  text-align: center;
-}
-
-.call-popup-box p {
-  font-size: 16px;
-  margin-bottom: 10px;
-  color: #eee;
-}
-
-.call-popup-box button {
-  display: block;
-  width: 100%;
-  margin: 6px 0;
-  padding: 10px;
-  background: #333;
-  border: none;
-  color: #fff;
-  font-size: 15px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.call-popup-box button:hover {
-  background: #555;
-}
-
 .flash {
   animation: flashHighlight 1s ease;
 }
 
 .reply-bubble {
   background-color: #2a2a2a;
-  border-left: 3px solid #1a73e8;
+  border-left: 3px solid #44337A;
   padding: 6px 10px;
   border-radius: 6px;
   margin-bottom: 6px;
@@ -363,7 +305,7 @@ button:hover {
 
 .reply-preview {
   background: #1e1e1e;
-  border-left: 3px solid #1a73e8;
+  border-left: 3px solid #44337A;
   padding: 8px 10px;
   font-size: 0.85rem;
   color: #bbb;
