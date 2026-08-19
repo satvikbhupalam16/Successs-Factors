@@ -18,9 +18,11 @@ const onlineUsers = {};
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
 
-// NTFY Secret Topic for Urgent Loud Phone Alarms
-// You can set NTFY_TOPIC in your .env or Render dashboard (default: qcapp-satvik-alarm-99)
+// NTFY Secret Topic (Change or set in .env to ensure it is unique)
 const NTFY_TOPIC = process.env.NTFY_TOPIC || 'qcapp-satvik-alarm-99';
+
+// Anti-spam cooldown (prevents 429 when testing rapid logins)
+let lastAlarmTime = 0;
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
@@ -35,8 +37,16 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'SF_Home_Page.html'
 app.get('/chat', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.use(express.static(path.join(__dirname)));
 
-// Helper function to trigger max-priority emergency phone alarm
+// Helper function to trigger emergency phone alarm & Telegram
 function triggerUrgentAlarm(messageText) {
+  const now = Date.now();
+  // 10-second cooldown check to avoid rate limits during quick reconnects
+  if (now - lastAlarmTime < 10000) {
+    console.log('⏳ Alarm throttled (too soon after last alarm)');
+    return;
+  }
+  lastAlarmTime = now;
+
   // 1. Send Telegram Message
   if (BOT_TOKEN && CHAT_ID) {
     axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -47,11 +57,11 @@ function triggerUrgentAlarm(messageText) {
     .catch(err => console.error('❌ Telegram error:', err.message));
   }
 
-  // 2. Trigger Loud Emergency Phone Ring & Alarm via ntfy
+  // 2. Trigger Phone Alarm via ntfy (Using 'high' priority to prevent 429 limits)
   axios.post(`https://ntfy.sh/${NTFY_TOPIC}`, messageText, {
     headers: {
       'Title': 'QCApp: Wake Up!',
-      'Priority': 'urgent',
+      'Priority': 'high', // High priority rings loudly without hitting 429 quotas
       'Tags': 'rotating_light,loudspeaker',
       'Click': 'https://quick-chat-fumk.onrender.com/'
     }
@@ -81,7 +91,7 @@ io.on('connection', (socket) => {
 
       socket.emit('name set', { name: user.username });
 
-      // ✅ Trigger urgent wake-up alarm when Pig logs in
+      // ✅ Trigger alarm when Pig logs in
       if (user.username === 'Pig') {
         triggerUrgentAlarm('🐷 Wake up! Pig is online ready!');
       }
