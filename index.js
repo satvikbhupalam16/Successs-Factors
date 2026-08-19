@@ -50,10 +50,10 @@ function triggerUrgentAlarm(messageText) {
   // 2. Trigger Loud Emergency Phone Ring & Alarm via ntfy
   axios.post(`https://ntfy.sh/${NTFY_TOPIC}`, messageText, {
     headers: {
-      'Title': '🚨 QCApp: Wake Up!',
-      'Priority': 'urgent', // Max priority: rings loud, long vibration, bypasses silence
+      'Title': 'QCApp: Wake Up!',
+      'Priority': 'urgent',
       'Tags': 'rotating_light,loudspeaker',
-      'Click': 'https://quick-chat-fumk.onrender.com/' // Tapping opens app directly
+      'Click': 'https://quick-chat-fumk.onrender.com/'
     }
   })
   .then(() => console.log('✅ Urgent ntfy phone alarm sent'))
