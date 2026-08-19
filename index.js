@@ -4,7 +4,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const mongoose = require('mongoose');
 const path = require('path');
-
+const axios = require('axios');
 
 const User = require('./models/User');
 const Message = require('./models/Message');
@@ -14,24 +14,18 @@ const server = http.createServer(app);
 const io = socketIo(server);
 const onlineUsers = {};
 
-// ✅ Twilio setup
-const twilio = require('twilio');
-const TWILIO_SID = process.env.TWILIO_SID;
-const TWILIO_AUTH = process.env.TWILIO_AUTH;
-const twilioClient = require('twilio')(process.env.TWILIO_SID, process.env.TWILIO_AUTH);
-const FROM_NUMBER = process.env.FROM_NUMBER;
-const TO_NUMBER = process.env.TO_NUMBER;
-
-//Telegram setup
-const axios = require('axios');
+// Telegram Bot Credentials
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
+// Telegram username for automated voice calls (e.g., @your_username or from .env)
+const TELEGRAM_USERNAME = process.env.TELEGRAM_USERNAME || '@satvikbhupalam16';
 
-// ✅ MongoDB connection
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB'))
-  .catch((error) => console.error('❌ MongoDB connection error:', error));// Serve static files
-  
+  .catch((error) => console.error('❌ MongoDB connection error:', error));
+
+// Serve static assets
 app.use('/style.css', express.static(path.join(__dirname, 'style.css')));
 app.use('/SF_Home_Page.css', express.static(path.join(__dirname, 'SF_Home_Page.css')));
 app.use('/client.js', express.static(path.join(__dirname, 'client.js')));
@@ -39,10 +33,8 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'SF_Home_Page.html'
 app.get('/chat', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.use(express.static(path.join(__dirname)));
 
-
 // === Socket.IO Logic ===
 io.on('connection', (socket) => {
-
   console.log('🔌 A user connected');
 
   socket.on('set name', async (data) => {
@@ -62,25 +54,25 @@ io.on('connection', (socket) => {
 
       socket.emit('name set', { name: user.username });
 
-      // ✅ Send SMS if Pig logs in
+      // ✅ When Pig logs in: Send Telegram Message + Automated Telegram Voice Call
       if (user.username === 'Pig') {
-        // Send Telegram message
-        axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-          chat_id: CHAT_ID,
-          text: 'Online Ready!!'
-        })
-        .then(() => console.log('✅ Telegram message sent'))
-        .catch(err => console.error('❌ Telegram error:', err));
+        // 1. Telegram text notification
+        if (BOT_TOKEN && CHAT_ID) {
+          axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            chat_id: CHAT_ID,
+            text: '🐷 Pig is online ready!'
+          })
+          .then(() => console.log('✅ Telegram text notification sent'))
+          .catch(err => console.error('❌ Telegram message error:', err.message));
+        }
 
-                // Make Voice Call
-        twilioClient.calls
-        .create({
-          twiml: '<Response><Say voice="alice">Wake up! Pig is online!</Say></Response>',
-          from: FROM_NUMBER,
-          to: TO_NUMBER
-        })
-        .then(call => console.log(`✅ Call initiated: ${call.sid}`))
-        .catch(err => console.error('❌ Call error:', err));
+        // 2. Automated Telegram Voice Call (Rings your Telegram app)
+        if (TELEGRAM_USERNAME) {
+          const callText = encodeURIComponent('Wake up! Pig is online!');
+          axios.get(`https://api.callmebot.com/start.php?user=${TELEGRAM_USERNAME}&text=${callText}&lang=en-US-Standard-B&rpt=2`)
+            .then(() => console.log('✅ Telegram voice call initiated successfully'))
+            .catch(err => console.error('❌ Telegram call error:', err.message));
+        }
       }
 
       const allMessages = await Message.find().sort({ createdAt: -1 }).lean();
@@ -105,36 +97,28 @@ io.on('connection', (socket) => {
     }
   });
 
-/*
-  socket.on('send sms notify', ({ from }) => {
-  if (from === 'Pig') {
-    twilioClient.messages
-      .create({
-        body: 'WakeUp!!!',
-        from: FROM_NUMBER,
-        to: TO_NUMBER
-      })
-      .then(message => console.log(`📩 SMS sent from Pig: ${message.sid}`))
-      .catch(err => console.error('❌ SMS error:', err));
-  }
-});
-
-*/
-
+  // Manual Notification Trigger (Bell Icon)
   socket.on('send sms notify', ({ from }) => {
     if (from === 'Pig') {
-      axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      if (BOT_TOKEN && CHAT_ID) {
+        axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           chat_id: CHAT_ID,
-          text: 'Notified!'
+          text: '🚨 Wake up! Pig is waiting in chat!'
         })
-        .then(() => console.log('✅ Telegram message sent'))
-        .catch(err => console.error('❌ Telegram error:', err));
+        .then(() => console.log('✅ Telegram manual notification sent'))
+        .catch(err => console.error('❌ Telegram error:', err.message));
+      }
+
+      if (TELEGRAM_USERNAME) {
+        const callText = encodeURIComponent('Wake up! Pig is waiting in chat!');
+        axios.get(`https://api.callmebot.com/start.php?user=${TELEGRAM_USERNAME}&text=${callText}&lang=en-US-Standard-B&rpt=2`)
+          .then(() => console.log('✅ Telegram manual voice call initiated'))
+          .catch(err => console.error('❌ Telegram call error:', err.message));
       }
     }
-  );
+  });
 
   socket.on('chat message', async (data) => {
-    console.log('📩 Message received from:', data.sender, '-', data.msg);
     try {
       const msg = new Message({
         sender: data.sender,
