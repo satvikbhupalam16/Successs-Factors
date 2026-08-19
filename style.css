@@ -1,17 +1,20 @@
 :root {
-  --bg-main: #0b0f17;         /* Deepest navy/slate background */
-  --bg-surface: #131b26;      /* Surface/card panels */
-  --bg-input: #1b2636;        /* Input background */
-  --border-color: #233348;    /* Subtle dividers */
-  --primary: #0ea5e9;         /* Electric cyan/blue */
-  --primary-hover: #0284c7;   /* Darker hover cyan */
-  --primary-glow: rgba(14, 165, 233, 0.25);
-  --text-main: #f1f5f9;       /* Bright readable text */
-  --text-muted: #94a3b8;      /* Secondary text & timestamps */
-  --bubble-user: #0284c7;     /* User sent message */
-  --bubble-friend: #1e293b;   /* Friend received message */
-  --danger: #ef4444;          /* Delete/offline red */
-  --success: #10b981;         /* Online green */
+  /* Microsoft Teams Dark Theme Palette */
+  --teams-bg-app: #141414;           /* App canvas background */
+  --teams-bg-header: #1f1f1f;        /* Top bar surface */
+  --teams-bg-surface: #242424;       /* Card/Panel surface */
+  --teams-bg-input: #292929;         /* Input field */
+  --teams-brand: #5b5fc7;            /* Teams Blurple / Purple brand */
+  --teams-brand-hover: #4f52b2;      /* Hover state */
+  --teams-brand-active: #444791;
+  --teams-bubble-user: #3b3a4a;      /* Teams subtle tinted user bubble */
+  --teams-bubble-friend: #242424;    /* Neutral dark incoming message */
+  --teams-reply-bg: rgba(0, 0, 0, 0.25);
+  --teams-border: #333333;           /* Fluent divider */
+  --teams-text-primary: #ffffff;     /* High-contrast body text */
+  --teams-text-secondary: #adadad;   /* Subtext & timestamps */
+  --teams-online: #92c353;           /* Teams green dot */
+  --teams-offline: #c4314b;          /* Teams red dot */
 }
 
 html, body {
@@ -21,21 +24,23 @@ html, body {
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
-  background: var(--bg-main);
-  color: var(--text-main);
+  font-family: "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  background: var(--teams-bg-app);
+  color: var(--teams-text-primary);
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Authentication / Centered Box */
 .card {
-  background: var(--bg-surface);
-  padding: 30px;
-  border-radius: 16px;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  background: var(--teams-bg-surface);
+  padding: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--teams-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   text-align: center;
 }
 
@@ -46,313 +51,341 @@ body {
 
 input, button {
   width: 100%;
-  padding: 12px;
-  margin: 10px 0;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 10px 14px;
+  margin: 8px 0;
+  border-radius: 4px;
+  font-size: 0.95rem;
   box-sizing: border-box;
+  font-family: inherit;
 }
 
 input {
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  color: var(--text-main);
+  background: var(--teams-bg-input);
+  border: 1px solid var(--teams-border);
+  border-bottom: 2px solid var(--teams-border);
+  color: var(--teams-text-primary);
   outline: none;
+  transition: border-color 0.2s ease;
 }
 
 input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px var(--primary-glow);
+  border-bottom-color: var(--teams-brand);
 }
 
 button.submitcode,
 button {
-  background: var(--primary);
+  background: var(--teams-brand);
   color: #ffffff;
   border: none;
   cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s ease;
+  font-weight: 600;
+  border-radius: 4px;
+  transition: background 0.15s ease;
 }
 
 button:hover {
-  background: var(--primary-hover);
+  background: var(--teams-brand-hover);
 }
 
+/* Chat Layout */
 .chat-container {
   display: flex;
   flex-direction: column;
   height: 100dvh;
-  max-width: 700px;
+  max-width: 768px;
   width: 100%;
   overflow: hidden;
-  background: var(--bg-surface);
-  border-left: 1px solid var(--border-color);
-  border-right: 1px solid var(--border-color);
+  background: var(--teams-bg-app);
+  border-left: 1px solid var(--teams-border);
+  border-right: 1px solid var(--teams-border);
 }
 
 .chat-header {
-  background: var(--bg-surface);
-  color: var(--text-main);
-  padding: 16px 20px;
+  background: var(--teams-bg-header);
+  color: var(--teams-text-primary);
+  padding: 12px 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   position: relative;
-  z-index: 1;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.chat-controls {
-  display: flex;
-  gap: 10px;
-}
-
-.chat-controls button {
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-main);
-}
-
-.chat-controls button:hover {
-  background: var(--border-color);
-}
-
-.chat-controls i {
-  color: var(--text-main);
-}
-
-.messages-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column-reverse;
-  background: var(--bg-main);
-}
-
-.message {
-  position: relative;
-  max-width: 70%;
-  padding: 12px 16px;
-  margin: 5px 0;
-  border-radius: 16px;
-  font-size: 15px;
-  word-wrap: break-word;
-  overflow-wrap: anywhere;
-}
-
-.user {
-  background-color: var(--bubble-user);
-  align-self: flex-end;
-  border-top-right-radius: 2px;
-  color: #ffffff;
-  box-shadow: 0 2px 8px var(--primary-glow);
-}
-
-.friend {
-  background-color: var(--bubble-friend);
-  align-self: flex-start;
-  border-top-left-radius: 2px;
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-}
-
-.timestamp {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-top: 6px;
-}
-
-.typing-indicator {
-  font-style: italic;
-  padding: 4px 20px;
-  color: var(--text-muted);
-}
-
-.input-area {
-  position: sticky;
-  bottom: 0;
-  background: var(--bg-surface);
-  padding: 12px;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  gap: 10px;
-  z-index: 999;
-}
-
-.input-area input {
-  flex: 1;
-  border: 1px solid var(--border-color);
-  background: var(--bg-input);
-  color: var(--text-main);
-}
-
-.input-area button {
-  width: 50px;
+  z-index: 10;
+  border-bottom: 1px solid var(--teams-border);
 }
 
 .status-box {
-  margin: 10px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
 }
 
 .status-name {
-  font-weight: bold;
-  font-size: 16px;
-  color: var(--text-main);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--teams-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .status-info {
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 12px;
+  color: var(--teams-text-secondary);
   margin-top: 2px;
 }
 
 .online-dot, .offline-dot {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  margin-right: 6px;
+  margin-right: 4px;
   vertical-align: middle;
 }
 
 .online-dot {
-  background-color: var(--success);
-  box-shadow: 0 0 6px var(--success);
+  background-color: var(--teams-online);
 }
 
 .offline-dot {
-  background-color: var(--danger);
+  background-color: var(--teams-offline);
 }
 
-.message-menu-btn {
-  position: absolute;
-  top: 4px;
-  right: 8px;
-  font-size: 18px;
-  color: var(--text-muted);
-  cursor: pointer;
-  z-index: 1;
-}
-
-.message:hover .message-menu-btn {
-  color: var(--text-main);
-}
-
-.message-actions {
+.chat-controls {
   display: flex;
-  gap: 5px;
-  float: right;
+  align-items: center;
+  gap: 6px;
 }
 
-.delete-btn {
-  background: none;
+.chat-controls button {
+  background: transparent;
   border: none;
-  color: var(--danger);
-  font-size: 12px;
-  cursor: pointer;
-  display: none;
+  border-radius: 4px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teams-text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.message:hover .delete-btn {
-  display: inline;
+.chat-controls button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--teams-text-primary);
 }
 
-.delete-popup {
-  position: absolute;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 4px 0;
-  z-index: 1000;
-  min-width: 160px;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.5);
-  animation: fadeIn 0.2s ease;
+.chat-controls i {
+  color: inherit;
+  font-size: 16px;
 }
 
-.delete-popup div {
+/* Message Feed */
+.messages-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  background: var(--teams-bg-app);
+}
+
+.message {
+  position: relative;
+  max-width: 72%;
   padding: 10px 14px;
-  color: var(--text-main);
-  cursor: pointer;
+  border-radius: 8px;
   font-size: 14px;
-  transition: background 0.2s ease;
+  line-height: 1.45;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
-.delete-popup div:hover {
-  background-color: var(--bg-input);
+.user {
+  background-color: var(--teams-bubble-user);
+  align-self: flex-end;
+  border: 1px solid rgba(91, 95, 199, 0.35);
+  color: var(--teams-text-primary);
+  border-bottom-right-radius: 2px;
 }
 
-.delete-popup div:last-child {
-  color: var(--text-muted);
-  border-top: 1px solid var(--border-color);
+.friend {
+  background-color: var(--teams-bubble-friend);
+  align-self: flex-start;
+  border: 1px solid var(--teams-border);
+  color: var(--teams-text-primary);
+  border-bottom-left-radius: 2px;
+}
+
+.timestamp {
+  font-size: 11px;
+  color: var(--teams-text-secondary);
   margin-top: 4px;
+  text-align: right;
 }
 
-.flash {
-  animation: flashHighlight 1s ease;
+.typing-indicator {
+  font-size: 12px;
+  padding: 6px 20px;
+  color: var(--teams-text-secondary);
 }
 
+/* Reply Block inside Message */
 .reply-bubble {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-left: 3px solid var(--primary);
+  background-color: var(--teams-reply-bg);
+  border-left: 3px solid var(--teams-brand);
   padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: 4px;
   margin-bottom: 6px;
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  font-size: 12.5px;
+  color: var(--teams-text-secondary);
 }
 
 .reply-preview {
-  background: var(--bg-surface);
-  border-left: 3px solid var(--primary);
-  padding: 8px 10px;
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  background: var(--teams-bg-header);
+  border-left: 3px solid var(--teams-brand);
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: var(--teams-text-secondary);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 100%;
 }
 
 .reply-preview button {
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--teams-text-secondary);
   cursor: pointer;
+  font-size: 14px;
+  width: auto;
+  margin: 0;
+  padding: 0 4px;
+}
+
+.reply-preview button:hover {
+  color: var(--teams-text-primary);
+}
+
+/* Context Menu / Message Actions */
+.message-menu-btn {
+  position: absolute;
+  top: 4px;
+  right: 6px;
   font-size: 16px;
+  color: var(--teams-text-secondary);
+  cursor: pointer;
+  z-index: 2;
+  opacity: 0.6;
+}
+
+.message:hover .message-menu-btn {
+  opacity: 1;
+  color: var(--teams-text-primary);
+}
+
+.delete-popup {
+  position: absolute;
+  background-color: var(--teams-bg-surface);
+  border: 1px solid var(--teams-border);
+  border-radius: 6px;
+  padding: 4px 0;
+  z-index: 1000;
+  min-width: 150px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+  animation: fadeIn 0.15s ease;
+}
+
+.delete-popup div {
+  padding: 8px 12px;
+  color: var(--teams-text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.1s ease;
+}
+
+.delete-popup div:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.delete-popup div:last-child {
+  color: var(--teams-offline);
+  border-top: 1px solid var(--teams-border);
+  margin-top: 2px;
+}
+
+/* Input Bottom Bar */
+.input-area {
+  position: sticky;
+  bottom: 0;
+  background: var(--teams-bg-header);
+  padding: 10px 16px;
+  border-top: 1px solid var(--teams-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 999;
+}
+
+.input-area input {
+  flex: 1;
+  margin: 0;
+  padding: 10px 14px;
+  background: var(--teams-bg-input);
+  border: 1px solid var(--teams-border);
+  border-radius: 20px;
+  color: var(--teams-text-primary);
+  font-size: 14px;
+}
+
+.input-area input:focus {
+  border-color: var(--teams-brand);
+}
+
+.input-area button {
+  width: 38px;
+  height: 38px;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--teams-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.input-area button:hover {
+  background: var(--teams-brand-hover);
 }
 
 #notify-btn {
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
-  margin-left: 10px;
-  color: var(--text-muted);
+  color: var(--teams-text-secondary);
 }
 
 #notify-btn:hover {
-  color: var(--primary);
+  color: var(--teams-brand);
+}
+
+/* Animations */
+.flash {
+  animation: flashHighlight 1s ease;
 }
 
 @keyframes flashHighlight {
-  0%   { background-color: rgba(14, 165, 233, 0.4); }
+  0%   { background-color: rgba(91, 95, 199, 0.4); }
   100% { background-color: inherit; }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to   { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Mobile Responsive */
 @media screen and (max-width: 768px) {
   body {
     flex-direction: column;
@@ -368,28 +401,14 @@ button:hover {
   }
 
   .messages-area {
-    padding: 12px;
+    padding: 12px 14px;
+  }
+
+  .message {
+    max-width: 82%;
   }
 
   .input-area {
-    padding: 10px;
-  }
-
-  .input-area button {
-    width: 48px;
-  }
-
-  .card {
-    border-radius: 0;
-    padding: 20px;
-  }
-
-  input, button {
-    font-size: 1rem;
-    padding: 10px;
-  }
-
-  #status-display {
-    margin: 0 0 10px 0;
+    padding: 8px 12px;
   }
 }
