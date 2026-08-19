@@ -1,27 +1,16 @@
 {
-  "name": "quick-chat-app",
+  "name": "success-factors-chat",
   "version": "1.0.0",
+  "description": "Private Chat App",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "dotenv": "^16.5.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.5",
     "express": "^5.1.0",
     "mongoose": "^8.14.1",
-    "socket.io": "^4.8.1",
-    "twilio": "^5.6.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/satvikbhupalam16/quick-chat.git"
-  },
-  "bugs": {
-    "url": "https://github.com/satvikbhupalam16/quick-chat/issues"
-  },
-  "homepage": "https://github.com/satvikbhupalam16/quick-chat#readme",
-  "description": ""
+    "socket.io": "^4.8.1"
+  }
 }
