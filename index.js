@@ -17,21 +17,48 @@ const onlineUsers = {};
 // Telegram Bot Credentials
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
-// Telegram username for automated voice calls (e.g., @your_username or from .env)
-const TELEGRAM_USERNAME = process.env.TELEGRAM_USERNAME || '@satvikbhupalam16';
+
+// NTFY Secret Topic for Urgent Loud Phone Alarms
+// You can set NTFY_TOPIC in your .env or Render dashboard (default: qcapp-satvik-alarm-99)
+const NTFY_TOPIC = process.env.NTFY_TOPIC || 'qcapp-satvik-alarm-99';
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch((error) => console.error('❌ MongoDB connection error:', error));
 
-// Serve static assets
+// Serve static files
 app.use('/style.css', express.static(path.join(__dirname, 'style.css')));
 app.use('/SF_Home_Page.css', express.static(path.join(__dirname, 'SF_Home_Page.css')));
 app.use('/client.js', express.static(path.join(__dirname, 'client.js')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'SF_Home_Page.html')));
 app.get('/chat', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.use(express.static(path.join(__dirname)));
+
+// Helper function to trigger max-priority emergency phone alarm
+function triggerUrgentAlarm(messageText) {
+  // 1. Send Telegram Message
+  if (BOT_TOKEN && CHAT_ID) {
+    axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      chat_id: CHAT_ID,
+      text: messageText
+    })
+    .then(() => console.log('✅ Telegram message sent'))
+    .catch(err => console.error('❌ Telegram error:', err.message));
+  }
+
+  // 2. Trigger Loud Emergency Phone Ring & Alarm via ntfy
+  axios.post(`https://ntfy.sh/${NTFY_TOPIC}`, messageText, {
+    headers: {
+      'Title': '🚨 QCApp: Wake Up!',
+      'Priority': 'urgent', // Max priority: rings loud, long vibration, bypasses silence
+      'Tags': 'rotating_light,loudspeaker',
+      'Click': 'https://quick-chat-fumk.onrender.com/' // Tapping opens app directly
+    }
+  })
+  .then(() => console.log('✅ Urgent ntfy phone alarm sent'))
+  .catch(err => console.error('❌ ntfy alarm error:', err.message));
+}
 
 // === Socket.IO Logic ===
 io.on('connection', (socket) => {
@@ -54,25 +81,9 @@ io.on('connection', (socket) => {
 
       socket.emit('name set', { name: user.username });
 
-      // ✅ When Pig logs in: Send Telegram Message + Automated Telegram Voice Call
+      // ✅ Trigger urgent wake-up alarm when Pig logs in
       if (user.username === 'Pig') {
-        // 1. Telegram text notification
-        if (BOT_TOKEN && CHAT_ID) {
-          axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-            chat_id: CHAT_ID,
-            text: '🐷 Pig is online ready!'
-          })
-          .then(() => console.log('✅ Telegram text notification sent'))
-          .catch(err => console.error('❌ Telegram message error:', err.message));
-        }
-
-        // 2. Automated Telegram Voice Call (Rings your Telegram app)
-        if (TELEGRAM_USERNAME) {
-          const callText = encodeURIComponent('Wake up! Pig is online!');
-          axios.get(`https://api.callmebot.com/start.php?user=${TELEGRAM_USERNAME}&text=${callText}&lang=en-US-Standard-B&rpt=2`)
-            .then(() => console.log('✅ Telegram voice call initiated successfully'))
-            .catch(err => console.error('❌ Telegram call error:', err.message));
-        }
+        triggerUrgentAlarm('🐷 Wake up! Pig is online ready!');
       }
 
       const allMessages = await Message.find().sort({ createdAt: -1 }).lean();
@@ -97,28 +108,15 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Manual Notification Trigger (Bell Icon)
+  // Manual Wake-Up Trigger (Bell Icon in Header)
   socket.on('send sms notify', ({ from }) => {
     if (from === 'Pig') {
-      if (BOT_TOKEN && CHAT_ID) {
-        axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-          chat_id: CHAT_ID,
-          text: '🚨 Wake up! Pig is waiting in chat!'
-        })
-        .then(() => console.log('✅ Telegram manual notification sent'))
-        .catch(err => console.error('❌ Telegram error:', err.message));
-      }
-
-      if (TELEGRAM_USERNAME) {
-        const callText = encodeURIComponent('Wake up! Pig is waiting in chat!');
-        axios.get(`https://api.callmebot.com/start.php?user=${TELEGRAM_USERNAME}&text=${callText}&lang=en-US-Standard-B&rpt=2`)
-          .then(() => console.log('✅ Telegram manual voice call initiated'))
-          .catch(err => console.error('❌ Telegram call error:', err.message));
-      }
+      triggerUrgentAlarm('🚨 Urgent: Pig is waiting in chat!');
     }
   });
 
   socket.on('chat message', async (data) => {
+    console.log('📩 Message received from:', data.sender, '-', data.msg);
     try {
       const msg = new Message({
         sender: data.sender,
