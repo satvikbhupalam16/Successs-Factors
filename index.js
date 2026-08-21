@@ -40,7 +40,7 @@ function triggerUrgentAlarm(messageText) {
   if (BOT_TOKEN && CHAT_ID) {
     axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       chat_id: CHAT_ID,
-      text: `${messageText}\n\n🔗 Open App: https://quick-chat-fumk.onrender.com/`,
+      text: `${messageText}`,
       disable_notification: false
     })
     .then(() => console.log('✅ Telegram message sent'))
